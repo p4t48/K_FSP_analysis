@@ -6,6 +6,10 @@ This fitting library contains the following methods:
 
 - ReturnFSP(N): Returns data points of the Nth FSP with timing info.
 
+- ReturnPump(N): Returns data points of the pump beam during Nth FSP with timing info.
+
+- ReturnPumpProbeLevels(N): Returns the pump and probe levels of RF-FSP mode as averages during probing time.
+
 - FSPFitExponential(N, report=0): Fits a constant plus exponential to the Nth FSP. As default doesn't print report. 
 
 - FSPFitExponentialPlot(N): Plot result of fitting simple exponential to the FSP. 
@@ -30,6 +34,7 @@ from lmfit import minimize, Parameters, Parameter, report_fit
 from scipy import signal as sg
 import pandas as pd
 import glob
+import os
 
 
 class FSPAnalysis:
@@ -405,17 +410,27 @@ class FSPAnalysis:
             e.append(result.params['e'].value)
             De.append(result.params['e'].stderr)
 
-        Bsens = self.Sensitivity(N, 3000, 5000, 10**6)
+        Bsens = self.Sensitivity(N, 3000, 5000)
+        pumpLevel, probeLevel = self.ReturnPumpProbeLevels(N)
         
-        d = {'bcos': bcos, 'Dbcos': Dbcos, 'bsine': bsine, 'Dbsine': Dbsine, 'frequency': frequency, 'Dfrequency': Dfrequency, 'gamma': gamma, 'Dgamma': Dgamma, 'dc': dc, 'Ddc': Ddc, 'd': d, 'Dd': Dd, 'e': e, 'De': De, 'SNBSens': Bsens}
+        d = {'bcos': bcos, 'Dbcos': Dbcos, 'bsine': bsine, 'Dbsine': Dbsine, 'frequency': frequency, 'Dfrequency': Dfrequency, 'gamma': gamma, 'Dgamma': Dgamma, 'dc': dc, 'Ddc': Ddc, 'd': d, 'Dd': Dd, 'e': e, 'De': De, 'SNBSens': Bsens, 'pumpL': pumpLevel, 'probeL': probeLevel}
         df = pd.DataFrame(data=d)
 
-        df.to_csv("../results/%s_ch%i.csv" % (self.dataFile, self.channel), index=False, sep='\t')
+        folder = self.dataFile.split("/")[1]
+        fileName = self.dataFile.split("/")[2]
+        folderPath = "../results/%s" % folder
+        filePath = "../results/%s/%s.csv" % (folder, fileName)
 
+        if os.path.isdir(folderPath):
+            df.to_csv(filePath, index=False, sep='\t')
+        else:
+            os.mkdir(folderPath)
+            df.to_csv(filePath, index=False, sep='\t')
 
-    def Sensitivity(self, N, noiseLevelLow, noiseLevelHigh, gainFemto):
+    def Sensitivity(self, N, noiseLevelLow, noiseLevelHigh):
         """ Returns the sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). """
 
+        gainFemto = self.amplifierGains['probe']
         Dt = 1/self.samplingRate
         nPoints = len(self.ReturnFSP(N)['signal'])
         T = Dt * nPoints
