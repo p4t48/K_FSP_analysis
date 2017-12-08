@@ -8,18 +8,20 @@ import matplotlib.pyplot as plt
 
 # Info about input data file
 inputRange = 5
-samplingRate = 10**6
+samplingRate = 10**5
 bits = 16
-channel = 2
+pump = 1
+probe = 2
 
-dataFiles = glob.glob("20171115/K_*_1MSPS")
+dataFiles = glob.glob("../20171207/F21_1uT_4_Pump_1_Probe")
 print(dataFiles)
 
 
 for dataFile in dataFiles:
 
     print(dataFile)
-    an = FSPAnalysis(dataFile, inputRange, samplingRate, bits, channel)
-    an.AnalyseNFSPs(20)
+    an = FSPAnalysis(dataFile, inputRange, samplingRate, bits, pump, probe)
+    an.FSPFullFit(1,1)
+    # an.AnalyseNFSPs(10)
     #an.FSPNoiseLevelPlot(1, 1000, 4000, 10**6)
-
+    print(an.ReturnPumpProbeLevels(1))

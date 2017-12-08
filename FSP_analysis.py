@@ -34,12 +34,13 @@ import glob
 
 class FSPAnalysis:
 
-    def __init__(self, dataFile, inputRange, samplingRate, bits, channel):
+    def __init__(self, dataFile, inputRange, samplingRate, bits, pump, probe):
         self.dataFile = dataFile
         self.inputRange = inputRange
         self.samplingRate = samplingRate
         self.bits = bits
-        self.channel = channel
+        self.probe = probe
+        self.pump = pump
 
         # Depending on the data format, get signal in volts
         f = open("%s" % self.dataFile, "r")
@@ -53,8 +54,8 @@ class FSPAnalysis:
             print("Needs to be either 16 or 32 bit!")
 
         self.trigger = self.data[3::4] * normalization
-        self.rawFSP = self.data[self.channel-1::4] * normalization
-
+        self.rawFSP = self.data[self.probe-1::4] * normalization
+        self.pump = self.data[self.pump-1::4] * normalization
         
     def TriggerFSP(self, N):
         """ Get the Nth FSP from raw data by using the trigger channel. """
@@ -97,7 +98,26 @@ class FSPAnalysis:
 
         return {'time': time, 'signal': signal}
 
+    def ReturnPump(self, N):
+        """ Returns data points of the pump beam during Nth FSP with timing info. """
 
+        boundaries = self.TriggerFSP(N)
+
+        # Get signal and cut out the first few weird points in the most obscure way possible
+        signal = self.pump[boundaries[0]:boundaries[1]]
+        time = np.arange(0, len(signal))/self.samplingRate
+
+        return {'time': time, 'signal': signal}
+
+    
+    def ReturnPumpProbeLevels(self, N):
+        """ Returns the pump and probe levels of RF-FSP mode as averages during probing time. """
+
+        probeLevel = np.mean(self.ReturnFSP(N)['signal'])
+        pumpLevel = np.mean(self.ReturnPump(N)['signal'])
+
+        return pumpLevel, probeLevel
+        
     def FSPFitExponential(self, N, report=0):
         """ Fits a constant plus exponential to the Nth FSP. As default doesn't print report. """
 
@@ -386,10 +406,11 @@ class FSPAnalysis:
         d = {'bcos': bcos, 'Dbcos': Dbcos, 'bsine': bsine, 'Dbsine': Dbsine, 'frequency': frequency, 'Dfrequency': Dfrequency, 'gamma': gamma, 'Dgamma': Dgamma, 'dc': dc, 'Ddc': Ddc, 'd': d, 'Dd': Dd, 'e': e, 'De': De, 'SNBSens': Bsens}
         df = pd.DataFrame(data=d)
 
-        df.to_csv("results/%s_ch%i.csv" % (self.dataFile, self.channel), index=False, sep='\t')
+        df.to_csv("../results/%s_ch%i.csv" % (self.dataFile, self.channel), index=False, sep='\t')
 
 
     def Sensitivity(self, N, noiseLevelLow, noiseLevelHigh, gainFemto):
+        """ Returns the sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). """
 
         Dt = 1/self.samplingRate
         nPoints = len(self.ReturnFSP(N)['signal'])
@@ -409,6 +430,6 @@ class FSPAnalysis:
 
         sensitivity = np.sqrt(12 * C) / (2 * np.pi * amplitude/shotNoise * T**(3/2))
 
-        Bsens = sensitivity/7/np.sqrt(7)
+        Bsens = sensitivity/7 # Divide by 7 as 1uT = 7kHz for Potassium
         
         return Bsens
