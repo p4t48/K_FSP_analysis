@@ -34,28 +34,32 @@ import glob
 
 class FSPAnalysis:
 
-    def __init__(self, dataFile, inputRange, samplingRate, bits, pump, probe):
+    def __init__(self, dataFile, samplingRate, bits, channelLayout, channelRanges, amplifierGains):
         self.dataFile = dataFile
-        self.inputRange = inputRange
         self.samplingRate = samplingRate
-        self.bits = bits
-        self.probe = probe
-        self.pump = pump
+        self.amplifierGains = amplifierGains
 
         # Depending on the data format, get signal in volts
         f = open("%s" % self.dataFile, "r")
-        if self.bits == 16:
+        if bits == 16:
             self.data = np.fromfile(f, dtype=np.int16)
-            normalization = self.inputRange / 2**15 # To get voltages from 16 bit integer
-        elif self.bits == 32:
+            pumpNorm = channelRanges['pump'] / 2**15 # To get voltages from 16 bit integer
+            probeNorm = channelRanges['probe'] / 2**15 
+            waveformNorm = channelRanges['waveform'] / 2**15 
+            triggerNorm = channelRanges['trigger'] / 2**15 
+        elif bits == 32:
             self.data = np.fromfile(f, dtype=np.int32)
-            normalization = self.inputRange / 2**31 # To get voltages from 32 bit integer
+            pumpNorm = channelRanges['pump'] / 2**31 # To get voltages from 16 bit integer
+            probeNorm = channelRanges['probe'] / 2**31 
+            waveformNorm = channelRanges['waveform'] / 2**31 
+            triggerNorm = channelRanges['trigger'] / 2**31             
         else:
             print("Needs to be either 16 or 32 bit!")
 
-        self.trigger = self.data[3::4] * normalization
-        self.rawFSP = self.data[self.probe-1::4] * normalization
-        self.pump = self.data[self.pump-1::4] * normalization
+        self.pumpCh = self.data[channelLayout['pump']-1::4] * pumpNorm            
+        self.probeCh = self.data[channelLayout['probe']-1::4] * probeNorm
+        self.waveformCh = self.data[channelLayout['waveform']-1::4] * waveformNorm
+        self.triggerCh = self.data[channelLayout['trigger']-1::4] * triggerNorm
         
     def TriggerFSP(self, N):
         """ Get the Nth FSP from raw data by using the trigger channel. """
@@ -67,13 +71,13 @@ class FSPAnalysis:
         
         triggerLevel = 0.005
         # Check whether the first FSP is complete or not.
-        if self.trigger[0] < triggerLevel:
+        if self.triggerCh[0] < triggerLevel:
             initialState = 0
         else:
             initialState = 1
 
         # Numpy where returns a tuple as default but I want an array...    
-        rangeFSP = np.squeeze(np.array(np.where(self.trigger <= triggerLevel)))
+        rangeFSP = np.squeeze(np.array(np.where(self.triggerCh <= triggerLevel)))
         locationFSP = consecutive(rangeFSP)
 
         if initialState == 0:
@@ -93,7 +97,7 @@ class FSPAnalysis:
         boundaries = self.TriggerFSP(N)
 
         # Get signal and cut out the first few weird points in the most obscure way possible
-        signal = self.rawFSP[boundaries[0]:boundaries[1]]
+        signal = self.probeCh[boundaries[0]:boundaries[1]]
         time = np.arange(0, len(signal))/self.samplingRate
 
         return {'time': time, 'signal': signal}
@@ -104,7 +108,7 @@ class FSPAnalysis:
         boundaries = self.TriggerFSP(N)
 
         # Get signal and cut out the first few weird points in the most obscure way possible
-        signal = self.pump[boundaries[0]:boundaries[1]]
+        signal = self.pumpCh[boundaries[0]:boundaries[1]]
         time = np.arange(0, len(signal))/self.samplingRate
 
         return {'time': time, 'signal': signal}
@@ -113,8 +117,8 @@ class FSPAnalysis:
     def ReturnPumpProbeLevels(self, N):
         """ Returns the pump and probe levels of RF-FSP mode as averages during probing time. """
 
-        probeLevel = np.mean(self.ReturnFSP(N)['signal'])
-        pumpLevel = np.mean(self.ReturnPump(N)['signal'])
+        probeLevel = np.mean(self.ReturnFSP(N)['signal']) / self.amplifierGains['probe']
+        pumpLevel = np.mean(self.ReturnPump(N)['signal']) / self.amplifierGains['pump']
 
         return pumpLevel, probeLevel
         
