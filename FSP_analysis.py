@@ -244,10 +244,10 @@ class FSPAnalysis:
             fit = signalSubtracted + sineResult.residual
 
             f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=False, gridspec_kw={'hspace':0})                        
-            ax1.plot(time, signalSubtracted, label="FSP with subtracted DC and exponential")
+            ax1.plot(time, signalSubtracted, 'bo', linestyle='-', markersize=2, label="FSP with subtracted DC and exponential")
             ax1.plot(time, fit, 'r-', label="Fit to the FSP")
             ax1.set_ylabel("Voltage, V (V)", size=20)
-            ax2.plot(time, sineResult.residual)
+            ax2.plot(time, sineResult.residual, 'bo', linestyle='-', markersize=2)
             ax2.set_ylabel("Residual (V)")
             plt.legend(loc=0)
             plt.xlabel("Time, t (s)", size=26)
