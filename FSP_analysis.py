@@ -417,7 +417,7 @@ class FSPAnalysis:
             noiseWelch.append(nW)
             shotNoise.append(sN)
         
-        d = {'bcos': bcos, 'bsine': bsine, 'frequency': frequency, 'gamma': gamma, 'noiseP': noisePeriod, 'noiseW': noiseWelch, 'shotNoise': shotNoise, 'pumpL': pumpLevel, 'probeL': probeLevel}
+        d = {'bcos (V)': bcos, 'bsine (V)': bsine, 'frequency (Hz)': frequency, 'gamma (Hz)': gamma, 'noiseP (A/sqrt(Hz))': noisePeriod, 'noiseW (A/sqrt(Hz))': noiseWelch, 'shotNoise (A/sqrt(Hz))': shotNoise, 'pumpL (V)': pumpLevel, 'probeL (V)': probeLevel}
         df = pd.DataFrame(data=d)
 
         folder = self.dataFile.split("/")[1]
