@@ -75,7 +75,7 @@ class FSPAnalysis:
         
             return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
         
-        triggerLevel = 0.005
+        triggerLevel = 1
         # Check whether the first FSP is complete or not.
         if self.triggerCh[0] < triggerLevel:
             initialState = 0
