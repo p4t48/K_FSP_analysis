@@ -259,7 +259,7 @@ class FSPAnalysis:
         return {'sine': sineResult, 'exp': expResult, 'data': data}
 
 
-    def FSPNoiseLevelPlot(self, N, noiseFreqLow, noiseFreqHigh, gainFemto):
+    def FSPNoiseLevelPlot(self, N, noiseFreqLow, noiseFreqHigh):
         """ This function will calculate the power spectral density (PSD) using the periodogram
         method. It will calculate the real noise level and the shot noise level of the FSP. Then
         it plots the Fourier spectra along with the different noise levels on the graph. """
@@ -272,8 +272,8 @@ class FSPAnalysis:
         fWelch, PSDWelch = sg.welch(data['signal'], self.samplingRate, nperseg=1024)
 
         # Use root PSD in units of A/sqrt(Hz) with gain set on Femto
-        psd = np.sqrt(powerDensity)/gainFemto
-        psdWelch = np.sqrt(PSDWelch)/gainFemto
+        psd = np.sqrt(powerDensity)/self.amplifierGains['probe']
+        psdWelch = np.sqrt(PSDWelch)/self.amplifierGains['probe']
 
         # Calculate the noise level of the signal according to a specified frequency range
         freqConditionLow = freq > noiseFreqLow
@@ -288,7 +288,7 @@ class FSPAnalysis:
 
         noiseLevelPSD = np.sqrt(np.mean(np.square(psd[noiseRange]))) 
         noiseLevelWelch = np.sqrt(np.mean(np.square(psdWelch[noiseRangeWelch]))) 
-        shotNoiseLevel = np.sqrt(2*electronCharge*np.mean(data['signal'])/gainFemto)
+        shotNoiseLevel = np.sqrt(2*electronCharge*np.mean(data['signal'])/self.amplifierGains['probe'])
 
         print("The real noise level using the periodogram is %.3g A/sqrt(Hz)." % noiseLevelPSD)
         print("The real noise level using the Welch method is %.3g A/sqrt(Hz)." % noiseLevelWelch)
