@@ -309,7 +309,7 @@ class FSPAnalysis:
         plt.show()
 
         
-    def FSPNoiseLevel(self, N, noiseFreqLow, noiseFreqHigh, gainFemto):
+    def FSPNoiseLevel(self, N, noiseFreqLow, noiseFreqHigh):
         """ This function will calculate the power spectral density (PSD) using the periodogram
         method. It will calculate the real noise level and the shot noise level of the FSP and
         return those values. """
@@ -322,8 +322,8 @@ class FSPAnalysis:
         fWelch, PSDWelch = sg.welch(data['signal'], self.samplingRate, nperseg=1024)
 
         # Use root PSD in units of A/sqrt(Hz) with gain set on Femto
-        psd = np.sqrt(powerDensity)/gainFemto
-        psdWelch = np.sqrt(PSDWelch)/gainFemto
+        psd = np.sqrt(powerDensity)/self.amplifierGains['probe']
+        psdWelch = np.sqrt(PSDWelch)/self.amplifierGains['probe']
 
         # Calculate the noise level of the signal according to a specified frequency range
         freqConditionLow = freq > noiseFreqLow
@@ -333,7 +333,7 @@ class FSPAnalysis:
 
         noiseLevelPSD = np.sqrt(np.mean(np.square(psd[noiseRange]))) 
         noiseLevelWelch = np.sqrt(np.mean(np.square(psd[noiseRange]))) 
-        shotNoiseLevel = np.sqrt(2*electronCharge*np.mean(data['signal'])/gainFemto)
+        shotNoiseLevel = np.sqrt(2*electronCharge*np.mean(data['signal'])/self.amplifierGains['probe'])
 
         return noiseLevelPSD, noiseLevelWelch, shotNoiseLevel
 
@@ -412,7 +412,7 @@ class FSPAnalysis:
             pumpL, probeL = self.ReturnPumpProbeLevels(i)
             pumpLevel.append(pumpL)
             probeLevel.append(probeL)
-            nP, nW, sN = self.FSPNoiseLevel(i, 3000, 4000, 10^6)
+            nP, nW, sN = self.FSPNoiseLevel(i, 3000, 4000)
             noisePeriod.append(nP)
             noiseWelch.append(nW)
             shotNoise.append(sN)
@@ -440,9 +440,9 @@ class FSPAnalysis:
         T = Dt * nPoints
 
         result = self.FSPFullFit(N)
-        amplitude = np.sqrt(result.params['bc'].value**2 + result.params['bs'].value**2)/gainFemto
+        amplitude = np.sqrt(result.params['bc'].value**2 + result.params['bs'].value**2)/self.amplifierGains['probe']
         T2 = 1/result.params['gamma'].value
-        perNoise, welchNoise, shotNoise = self.FSPNoiseLevel(N, noiseLevelLow, noiseLevelHigh, gainFemto)
+        perNoise, welchNoise, shotNoise = self.FSPNoiseLevel(N, noiseLevelLow, noiseLevelHigh)
         beta = Dt / T2
         z = np.exp(-beta)
         N = nPoints
