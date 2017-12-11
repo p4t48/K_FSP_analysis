@@ -24,7 +24,7 @@ This fitting library contains the following methods:
 
 - FSPFullFit(N, report=0): Full fit of the FSP signal including the DC offset and its decay.
 
-- AnalyseNFSPs(N): Run the full fitting routine for and FSP on N FSPs and save results in csv file. 
+- AnalyseNFSPs(N): Run the decaying sine wave routine for an FSP on N FSPs and save results in csv file.
 
 """
 
@@ -249,7 +249,7 @@ class FSPAnalysis:
             ax1.set_ylabel("Voltage, V (V)", size=20)
             ax2.plot(time, sineResult.residual, 'bo', linestyle='-', markersize=2)
             ax2.set_ylabel("Residual (V)")
-            plt.legend(loc=0)
+            ax1.legend(loc=0)
             plt.xlabel("Time, t (s)", size=26)
             plt.tight_layout()
             plt.show()
@@ -379,11 +379,15 @@ class FSPAnalysis:
             report_fit(fullResult)
             fit = data['signal'] + fullResult.residual
 
+            f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=False, gridspec_kw={'hspace':0})                        
+            ax1.set_ylabel("Voltage, V (V)", size=20)
+            ax2.set_ylabel("Residual (V)")
+            ax1.plot(data['time'], data['signal'], 'bo', linestyle='-', markersize=2, label="Full FSP signal")
+            ax1.plot(data['time'], fit, 'r-', label="Fit to the FSP")
+            ax2.plot(data['time'], fullResult.residual, 'bo', linestyle='-', markersize=2)
+            ax1.legend(loc=1)
             plt.xlabel("Time, t (s)", size=26)
-            plt.ylabel("Voltage, V (V)", size=26)
-            plt.plot(data['time'], data['signal'], label="Full FSP signal")
-            plt.plot(data['time'], fit, 'r-', label="Fit to the FSP")
-            plt.legend(loc=1)
+            plt.tight_layout()
             plt.show()
         else:
             pass    
@@ -392,34 +396,28 @@ class FSPAnalysis:
 
     
     def AnalyseNFSPs(self, N):
-        """ Run the full fitting routine for and FSP on N FSPs and save results in csv file. """
+        """ Run the decaying sine wave routine for an FSP on N FSPs and save results in csv file. """
 
-        bcos, bsine, frequency, gamma, dc, d, e = [], [], [], [], [], [], []
-        Dbcos, Dbsine, Dfrequency, Dgamma, Ddc, Dd, De = [], [], [], [], [], [], []
-
-        
+        bcos, bsine, frequency, gamma = [], [], [], []
+        pumpLevel, probeLevel, noisePeriod, noiseWelch, shotNoise = [], [], [], [], []
+       
         for i in range(N):
             print("Analysing FSP %i" % i)
-            result = self.FSPFullFit(i)
-            bcos.append(result.params['bc'].value)
-            Dbcos.append(result.params['bc'].stderr)
-            bsine.append(result.params['bs'].value)
-            Dbsine.append(result.params['bs'].stderr)
-            frequency.append(result.params['f'].value)
-            Dfrequency.append(result.params['f'].stderr)
-            gamma.append(result.params['gamma'].value)
-            Dgamma.append(result.params['gamma'].stderr)
-            dc.append(result.params['dc'].value)
-            Ddc.append(result.params['dc'].stderr)
-            d.append(result.params['d'].value)
-            Dd.append(result.params['d'].stderr)
-            e.append(result.params['e'].value)
-            De.append(result.params['e'].stderr)
+            result = self.FSPFitDecayingSine(i)
+            bcos.append(result['sine'].params['bc'].value)
+            bsine.append(result['sine'].params['bs'].value)
+            frequency.append(result['sine'].params['f'].value)
+            gamma.append(result['sine'].params['c'].value)
 
-        Bsens = self.Sensitivity(N, 3000, 5000)
-        pumpLevel, probeLevel = self.ReturnPumpProbeLevels(N)
+            pumpL, probeL = self.ReturnPumpProbeLevels(i)
+            pumpLevel.append(pumpL)
+            probeLevel.append(probeL)
+            nP, nW, sN = self.FSPNoiseLevel(i, 3000, 4000, 10^6)
+            noisePeriod.append(nP)
+            noiseWelch.append(nW)
+            shotNoise.append(sN)
         
-        d = {'bcos': bcos, 'Dbcos': Dbcos, 'bsine': bsine, 'Dbsine': Dbsine, 'frequency': frequency, 'Dfrequency': Dfrequency, 'gamma': gamma, 'Dgamma': Dgamma, 'dc': dc, 'Ddc': Ddc, 'd': d, 'Dd': Dd, 'e': e, 'De': De, 'SNBSens': Bsens, 'pumpL': pumpLevel, 'probeL': probeLevel}
+        d = {'bcos': bcos, 'bsine': bsine, 'frequency': frequency, 'gamma': gamma, 'noiseP': noisePeriod, 'noiseW': noiseWelch, 'shotNoise': shotNoise, 'pumpL': pumpLevel, 'probeL': probeLevel}
         df = pd.DataFrame(data=d)
 
         folder = self.dataFile.split("/")[1]
