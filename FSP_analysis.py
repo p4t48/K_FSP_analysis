@@ -400,6 +400,7 @@ class FSPAnalysis:
 
         bcos, bsine, frequency, gamma = [], [], [], []
         pumpLevel, probeLevel, noisePeriod, noiseWelch, shotNoise = [], [], [], [], []
+        samplingRate, pointsFSP, ampGain = [], [], []
        
         for i in range(N):
             print("Analysing FSP %i" % i)
@@ -416,8 +417,12 @@ class FSPAnalysis:
             noisePeriod.append(nP)
             noiseWelch.append(nW)
             shotNoise.append(sN)
+            samplingRate.append(self.samplingRate)
+            pointsFSP.append(len(self.ReturnFSP(i)['signal']))
+            ampGain.append(self.amplifierGains['probe'])
+
         
-        d = {'bcos (V)': bcos, 'bsine (V)': bsine, 'frequency (Hz)': frequency, 'gamma (Hz)': gamma, 'noiseP (A/sqrt(Hz))': noisePeriod, 'noiseW (A/sqrt(Hz))': noiseWelch, 'shotNoise (A/sqrt(Hz))': shotNoise, 'pumpL (V)': pumpLevel, 'probeL (V)': probeLevel}
+        d = {'bcos (V)': bcos, 'bsine (V)': bsine, 'frequency (Hz)': frequency, 'gamma (Hz)': gamma, 'noiseP (A/sqrt(Hz))': noisePeriod, 'noiseW (A/sqrt(Hz))': noiseWelch, 'shotNoise (A/sqrt(Hz))': shotNoise, 'pumpL (A)': pumpLevel, 'probeL (A)': probeLevel, 'sampling rates (SPS)': samplingRate, 'points per FSP': pointsFSP, 'amplifier gain': ampGain}
         df = pd.DataFrame(data=d)
 
         folder = self.dataFile.split("/")[1]
@@ -431,18 +436,18 @@ class FSPAnalysis:
             os.mkdir(folderPath)
             df.to_csv(filePath, index=False, sep='\t')
 
-    def Sensitivity(self, N, noiseLevelLow, noiseLevelHigh):
-        """ Returns the sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). """
+    def SNSensitivity(self, N):
+        """ Returns the shot noise sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). """
 
         gainFemto = self.amplifierGains['probe']
         Dt = 1/self.samplingRate
         nPoints = len(self.ReturnFSP(N)['signal'])
         T = Dt * nPoints
 
-        result = self.FSPFullFit(N)
-        amplitude = np.sqrt(result.params['bc'].value**2 + result.params['bs'].value**2)/self.amplifierGains['probe']
-        T2 = 1/result.params['gamma'].value
-        perNoise, welchNoise, shotNoise = self.FSPNoiseLevel(N, noiseLevelLow, noiseLevelHigh)
+        result = self.FSPFitDecayingSine(N)
+        amplitude = np.sqrt(result['sine'].params['bc'].value**2 + result['sine'].params['bs'].value**2)/self.amplifierGains['probe']
+        T2 = 1/result['sine'].params['c'].value
+        perNoise, welchNoise, shotNoise = self.FSPNoiseLevel(N, 3000, 4000)
         beta = Dt / T2
         z = np.exp(-beta)
         N = nPoints
