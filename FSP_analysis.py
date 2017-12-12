@@ -12,8 +12,6 @@ This fitting library contains the following methods:
 
 - FSPFitExponential(N, report=0): Fits a constant plus exponential to the Nth FSP. As default doesn't print report. 
 
-- FSPFitExponentialPlot(N): Plot result of fitting simple exponential to the FSP. 
-
 -  FSPCoarseFrequency(N): Very coarse estimate of the frequency of the FSP for initial parameters of next fit. 
 
 - FSPFitDecayingSine(N, report=0): Fit decaying sine with subtracted DC and exponential. 
@@ -154,27 +152,19 @@ class FSPAnalysis:
         # Only print the fit report if needed
         if report == 1:
             report_fit(expResult)
+            fitResult = data['signal'] + expResult.residual
+
+            plt.xlabel("Time, t (s)", size=26)
+            plt.ylabel("Voltage, V (V)", size=26)
+
+            plt.plot(data['time'], data['signal'], label='FSP data')
+            plt.plot(data['time'], fitResult, 'r-', linewidth=3.0, label='Exponential fit to FSP')
+            plt.legend(loc=1)
+            plt.show()            
         else:
             pass
 
         return expResult
-
-    
-    def FSPFitExponentialPlot(self, N):
-        """ Plot result of fitting simple exponential to the FSP. """
-
-        expResult = self.FSPFitExponential(N, 1)
-        data = self.ReturnFSP(N)
-        fitResult = data['signal'] + expResult.residual
-
-        plt.xlabel("Time, t (s)", size=26)
-        plt.ylabel("Voltage, V (V)", size=26)
-
-        plt.plot(data['time'], data['signal'], label='FSP data')
-        plt.plot(data['time'], fitResult, 'r-', linewidth=3.0, label='Exponential fit to FSP')
-        plt.legend(loc=1)
-        plt.show()
-
 
     def FSPCoarseFrequency(self, N):
         """ Very coarse estimate of the frequency of the FSP for initial parameters of next fit. """
