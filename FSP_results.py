@@ -85,3 +85,91 @@ class FSPResults:
             matplotlib.rc('pdf', fonttype=42)
             plt.savefig("sensitivity.pdf")
 
+    def GammaPlot(self, save=0):
+        """ Contour plot of the linewidths in Hz as a function of laser powers. """
+        
+        pumpLevels, probeLevels, gammas = [], [], []
+        for dataFile in self.files:
+            df = pd.read_csv(dataFile, sep="\t")
+            df.reindex(df.index.drop(1))            
+            gain = np.mean(df['amplifier gain'])
+            samplingRate = np.mean(df['sampling rates (SPS)'])
+            nPoints = np.floor(np.mean(df['points per FSP']))
+            bc = np.mean(df['bcos (V)'])
+            bs = np.mean(df['bsine (V)'])
+            gamma = np.mean(df['gamma (Hz)'])
+            shotNoise = np.mean(df['shotNoise (A/sqrt(Hz))'])
+
+            gammas.append(gamma)
+            pumpLevels.append(np.mean(df['pumpL (A)'])*10**6)
+            probeLevels.append(np.mean(df['probeL (A)'])*10**6)
+
+        # Define the grid
+        yi = np.linspace(min(pumpLevels),max(pumpLevels),400)
+        xi = np.linspace(min(probeLevels),max(probeLevels),400)
+        sens = griddata(probeLevels, pumpLevels, gammas, xi, yi, interp='linear')
+        gammaMin = min(gammas)
+        gammaMax = max(gammas)
+        levels = np.linspace(gammaMin, gammaMax, 15, endpoint=True)
+
+        plt.contourf(xi, yi, sens, levels, cmap='cubehelix')
+        plt.title('RF-FSP linewidth', size=20)
+        plt.ylabel(r'Pump power, $P_{\mathrm{Pump}}$ ($\mu$A)', size=20)
+        plt.xlabel(r'Probe power, $P_{\mathrm{Probe}}$ ($\mu$A)', size=20)
+        cbarx = plt.colorbar(format=ticker.FuncFormatter(self.fmt))
+        cbarx.ax.tick_params(labelsize=16) 
+        cbarx.ax.set_ylabel(r'Linewidth, $\Gamma_2$ (Hz)', size=20)
+        plt.scatter(probeLevels, pumpLevels, marker='o', s=0.5)
+        plt.tight_layout()
+        
+        if save == 0:
+            plt.show()
+            plt.clf()
+        else:
+            matplotlib.rc('pdf', fonttype=42)
+            plt.savefig("linewidth.pdf")
+
+    def AmplitudePlot(self, save=0):
+        """ Contour plot of the amplitudes in V as a function of laser powers. """
+        
+        pumpLevels, probeLevels, amplitudes = [], [], []
+        for dataFile in self.files:
+            df = pd.read_csv(dataFile, sep="\t")
+            df.reindex(df.index.drop(1))            
+            gain = np.mean(df['amplifier gain'])
+            samplingRate = np.mean(df['sampling rates (SPS)'])
+            nPoints = np.floor(np.mean(df['points per FSP']))
+            bc = np.mean(df['bcos (V)'])
+            bs = np.mean(df['bsine (V)'])
+            gamma = np.mean(df['gamma (Hz)'])
+            shotNoise = np.mean(df['shotNoise (A/sqrt(Hz))'])
+
+            amplitudes.append(np.sqrt(bc**2 + bs**2))
+            pumpLevels.append(np.mean(df['pumpL (A)'])*10**6)
+            probeLevels.append(np.mean(df['probeL (A)'])*10**6)
+
+        # Define the grid
+        yi = np.linspace(min(pumpLevels),max(pumpLevels),400)
+        xi = np.linspace(min(probeLevels),max(probeLevels),400)
+        sens = griddata(probeLevels, pumpLevels, amplitudes, xi, yi, interp='linear')
+        amplitudeMin = min(amplitudes)
+        amplitudeMax = max(amplitudes)
+        levels = np.linspace(amplitudeMin, amplitudeMax, 15, endpoint=True)
+
+        plt.contourf(xi, yi, sens, levels, cmap='cubehelix')
+        plt.title('RF-FSP amplitudes', size=20)
+        plt.ylabel(r'Pump power, $P_{\mathrm{Pump}}$ ($\mu$A)', size=20)
+        plt.xlabel(r'Probe power, $P_{\mathrm{Probe}}$ ($\mu$A)', size=20)
+        cbarx = plt.colorbar(format=ticker.FuncFormatter(self.fmt))
+        cbarx.ax.tick_params(labelsize=16) 
+        cbarx.ax.set_ylabel(r'Amplitude, A (V)', size=20)
+        plt.scatter(probeLevels, pumpLevels, marker='o', s=0.5)
+        plt.tight_layout()
+        
+        if save == 0:
+            plt.show()
+            plt.clf()
+        else:
+            matplotlib.rc('pdf', fonttype=42)
+            plt.savefig("amplitude.pdf")            
+
