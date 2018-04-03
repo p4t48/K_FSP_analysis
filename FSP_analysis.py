@@ -52,7 +52,7 @@ class FSPAnalysis:
             triggerNorm = np.float16(channelRanges['trigger'] / 2**15)
         elif bits == 32:
             self.data = np.fromfile(self.dataFile, dtype=np.int32)
-            pumpNorm = channelRanges['pump'] / 2**31 # To get voltages from 16 bit integer
+            pumpNorm = channelRanges['pump'] / 2**31 # To get voltages from 32 bit int
             probeNorm = channelRanges['probe'] / 2**31 
             waveformNorm = channelRanges['waveform'] / 2**31 
             triggerNorm = channelRanges['trigger'] / 2**31             
@@ -66,13 +66,15 @@ class FSPAnalysis:
         self.triggerCh = np.float16(self.data[channelLayout['trigger']-1::4] * triggerNorm)
         self.data = []
 
+        allTriggers = self.TriggerFSP()
+        print(allTriggers.size)
+
                
-    def TriggerFSP(self, N):
-        """ Get the Nth FSP from raw data by using the trigger channel. """
+    def TriggerFSP(self):
+        """ Get the boundaries of all FSPs from raw data by using the trigger channel. """
 
         def consecutive(data, stepsize=1):
             """ Group consecutive numbers in array as a sub array. """
-        
             return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
         
         triggerLevel = 1
@@ -92,8 +94,13 @@ class FSPAnalysis:
         else:
             pass
 
-        # Return the boundary indices of the Nth FSP
-        return [min(locationFSP[N]), max(locationFSP[N])]
+        triggerPoints = []
+        for arr in locationFSP:
+            arrTrig = np.delete(arr, np.r_[slice(1,arr.size-1)])
+            triggerPoints.append(arrTrig)
+
+        # Return the boundary indices of all FSP signals
+        return np.array(triggerPoints)
 
 
 
