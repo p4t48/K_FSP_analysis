@@ -112,7 +112,7 @@ class FSPAnalysis:
 
         self.currentFSP = {'time': time, 'signal': signal}
 
-    def ReturnPump(self, N):
+    def ReturnPump(self):
         """ Returns data points of the pump beam during Nth FSP with timing info. """
 
         boundaries = self.allTriggers[N]
@@ -124,7 +124,7 @@ class FSPAnalysis:
         return {'time': time, 'signal': signal}
 
     
-    def ReturnPumpProbeLevels(self, N):
+    def ReturnPumpProbeLevels(self):
         """ Returns the pump and probe levels of RF-FSP mode as averages during probing time. """
 
         probeLevel = np.mean(self.currentFSP['signal']) / self.amplifierGains['probe']
@@ -132,7 +132,7 @@ class FSPAnalysis:
 
         return pumpLevel, probeLevel
         
-    def FSPFitExponential(self, N, report=0):
+    def FSPFitExponential(self, report=0):
         """ Fits a constant plus exponential to the Nth FSP. As default doesn't print report. """
 
         def ExponentialModel(params, t, data):
@@ -172,11 +172,11 @@ class FSPAnalysis:
 
         return expResult
 
-    def FSPCoarseFrequency(self, N):
+    def FSPCoarseFrequency(self):
         """ Very coarse estimate of the frequency of the FSP for initial parameters of next fit. """
 
         # Remove the DC offset and the exponential decay for easier manipulation
-        expResult = self.FSPFitExponential(N)
+        expResult = self.FSPFitExponential()
         a = expResult.params['a'].value
         d = expResult.params['d'].value
         e = expResult.params['e'].value
@@ -198,7 +198,7 @@ class FSPAnalysis:
         return freqEstimate    
 
 
-    def FSPFitDecayingSine(self, N, report=0):
+    def FSPFitDecayingSine(self, report=0):
         """ Fit decaying sine with subtracted DC and exponential. """
 
         def DecayingSine(params, t, data):
@@ -215,7 +215,7 @@ class FSPAnalysis:
             return model - data
 
         # Remove the DC offset and the exponential decay for easier manipulation
-        expResult = self.FSPFitExponential(N)
+        expResult = self.FSPFitExponential()
         a = expResult.params['a'].value
         d = expResult.params['d'].value
         e = expResult.params['e'].value
@@ -228,7 +228,7 @@ class FSPAnalysis:
         sineParams = Parameters()
         sineParams.add('bc', value=0.1)
         sineParams.add('bs', value=0.1)
-        sineParams.add('f', value=self.FSPCoarseFrequency(N))
+        sineParams.add('f', value=self.FSPCoarseFrequency())
         sineParams.add('c', value=70)
         sineParams.add('h', value=0.0)
 
@@ -255,7 +255,7 @@ class FSPAnalysis:
         return {'sine': sineResult, 'exp': expResult, 'data': data}
 
 
-    def FSPNoiseLevelPlot(self, N, noiseFreqLow, noiseFreqHigh):
+    def FSPNoiseLevelPlot(self, noiseFreqLow, noiseFreqHigh):
         """ This function will calculate the power spectral density (PSD) using the periodogram
         method. It will calculate the real noise level and the shot noise level of the FSP. Then
         it plots the Fourier spectra along with the different noise levels on the graph. """
@@ -305,7 +305,7 @@ class FSPAnalysis:
         plt.show()
 
         
-    def FSPNoiseLevel(self, N, noiseFreqLow, noiseFreqHigh):
+    def FSPNoiseLevel(self, noiseFreqLow, noiseFreqHigh):
         """ This function will calculate the power spectral density (PSD) using the periodogram
         method. It will calculate the real noise level and the shot noise level of the FSP and
         return those values. """
@@ -334,10 +334,10 @@ class FSPAnalysis:
         return noiseLevelPSD, noiseLevelWelch, shotNoiseLevel
 
 
-    def FSPFullFit(self, N, report=0):
+    def FSPFullFit(self, report=0):
         """ Full fit of the FSP signal including the DC offset and its decay. """
 
-        previousResults = self.FSPFitDecayingSine(N)
+        previousResults = self.FSPFitDecayingSine()
         sineInitial = previousResults['sine']
         expInitial = previousResults['exp']
         data = previousResults['data']
@@ -432,7 +432,7 @@ class FSPAnalysis:
             os.mkdir(folderPath)
             df.to_csv(filePath, index=False, sep='\t')
 
-    def SNSensitivity(self, N):
+    def SNSensitivity(self):
         """ Returns the shot noise sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). """
 
         gainFemto = self.amplifierGains['probe']
