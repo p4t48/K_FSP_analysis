@@ -67,6 +67,7 @@ class FSPAnalysis:
         self.data = []
 
         self.allTriggers = self.TriggerFSP()
+        self.currentFSP = []
                
     def TriggerFSP(self):
         """ Get the boundaries of all FSPs from raw data by using the trigger channel. """
@@ -97,8 +98,8 @@ class FSPAnalysis:
             arrTrig = np.delete(arr, np.r_[slice(1,arr.size-1)])
             triggerPoints.append(arrTrig)
 
-        # Return the boundary indices of all FSP signals
-        return np.array(triggerPoints)
+        # Return the boundary indices of all FSP signals except the last one
+        return np.array(triggerPoints[:-1])
 
     def ReturnFSP(self, N):
         """ Returns data points of the Nth FSP with timing info. """
@@ -106,10 +107,10 @@ class FSPAnalysis:
         boundaries = self.allTriggers[N]
 
         # Get signal and cut out the first few weird points in the most obscure way possible
-        signal = self.probeCh[boundaries[0]:boundaries[1]]
+        signal = self.probeCh[boundaries[0]+50:boundaries[1]]
         time = np.arange(0, len(signal))/self.samplingRate
 
-        return {'time': time, 'signal': signal}
+        self.currentFSP = {'time': time, 'signal': signal}
 
     def ReturnPump(self, N):
         """ Returns data points of the pump beam during Nth FSP with timing info. """
@@ -126,7 +127,7 @@ class FSPAnalysis:
     def ReturnPumpProbeLevels(self, N):
         """ Returns the pump and probe levels of RF-FSP mode as averages during probing time. """
 
-        probeLevel = np.mean(self.ReturnFSP(N)['signal']) / self.amplifierGains['probe']
+        probeLevel = np.mean(self.currentFSP['signal']) / self.amplifierGains['probe']
         pumpLevel = np.mean(self.ReturnPump(N)['signal']) / self.amplifierGains['pump']
 
         return pumpLevel, probeLevel
@@ -151,7 +152,7 @@ class FSPAnalysis:
         expParams.add('d', value=0.17)
         expParams.add('e', value=76)
 
-        data = self.ReturnFSP(N)
+        data = self.currentFSP
         expResult = minimize(ExponentialModel, expParams, args=(data['time'], data['signal']))
 
         # Only print the fit report if needed
@@ -180,7 +181,7 @@ class FSPAnalysis:
         d = expResult.params['d'].value
         e = expResult.params['e'].value
 
-        data = self.ReturnFSP(N)
+        data = self.currentFSP
         time = data['time'][0:self.samplingRate//100]
         signal = data['signal'][0:self.samplingRate//100] - (a + d * np.exp(-e*time))
 
@@ -219,7 +220,7 @@ class FSPAnalysis:
         d = expResult.params['d'].value
         e = expResult.params['e'].value
 
-        data = self.ReturnFSP(N)
+        data = self.currentFSP
         time = data['time']
         signalSubtracted = data['signal'] - (a + d * np.exp(-e*time))
 
@@ -262,7 +263,7 @@ class FSPAnalysis:
         electronCharge = 1.602 * 10**(-19) # In Coulomb
 
         # From a single FSP estimate the PSD
-        data = self.ReturnFSP(N)
+        data = self.currentFSP
         freq, powerDensity = sg.periodogram(data['signal'], self.samplingRate)
         fWelch, PSDWelch = sg.welch(data['signal'], self.samplingRate, nperseg=1024)
 
@@ -312,7 +313,7 @@ class FSPAnalysis:
         electronCharge = 1.602 * 10**(-19) # In Coulomb
 
         # From a single FSP estimate the PSD
-        data = self.ReturnFSP(N)
+        data = self.currentFSP
         freq, powerDensity = sg.periodogram(data['signal'], self.samplingRate)
         fWelch, PSDWelch = sg.welch(data['signal'], self.samplingRate, nperseg=1024)
 
@@ -436,7 +437,7 @@ class FSPAnalysis:
 
         gainFemto = self.amplifierGains['probe']
         Dt = 1/self.samplingRate
-        nPoints = len(self.ReturnFSP(N)['signal'])
+        nPoints = len(self.currentFSP['signal'])
         T = Dt * nPoints
 
         result = self.FSPFitDecayingSine(N)
