@@ -67,8 +67,11 @@ class FSPAnalysis:
         self.data = []
 
         self.allTriggers = self.TriggerFSP()
+        self.currentTrigger = []
         self.currentFSP = []
-               
+
+
+        
     def TriggerFSP(self):
         """ Get the boundaries of all FSPs from raw data by using the trigger channel. """
 
@@ -105,6 +108,7 @@ class FSPAnalysis:
         """ Returns data points of the Nth FSP with timing info. """
 
         boundaries = self.allTriggers[N]
+        self.currentTrigger = boundaries
 
         # Get signal and cut out the first few weird points in the most obscure way possible
         signal = self.probeCh[boundaries[0]+50:boundaries[1]]
@@ -115,7 +119,7 @@ class FSPAnalysis:
     def ReturnPump(self):
         """ Returns data points of the pump beam during Nth FSP with timing info. """
 
-        boundaries = self.allTriggers[N]
+        boundaries = self.currentTrigger
 
         # Get signal and cut out the first few weird points in the most obscure way possible
         signal = self.pumpCh[boundaries[0]:boundaries[1]]
@@ -128,7 +132,7 @@ class FSPAnalysis:
         """ Returns the pump and probe levels of RF-FSP mode as averages during probing time. """
 
         probeLevel = np.mean(self.currentFSP['signal']) / self.amplifierGains['probe']
-        pumpLevel = np.mean(self.ReturnPump(N)['signal']) / self.amplifierGains['pump']
+        pumpLevel = np.mean(self.ReturnPump()['signal']) / self.amplifierGains['pump']
 
         return pumpLevel, probeLevel
         
@@ -399,22 +403,23 @@ class FSPAnalysis:
         samplingRate, pointsFSP, ampGain = [], [], []
        
         for i in range(N):
+            self.ReturnFSP(i)
             print("Analysing FSP %i" % i)
-            result = self.FSPFitDecayingSine(i)
+            result = self.FSPFitDecayingSine()
             bcos.append(result['sine'].params['bc'].value)
             bsine.append(result['sine'].params['bs'].value)
             frequency.append(result['sine'].params['f'].value)
             gamma.append(result['sine'].params['c'].value)
 
-            pumpL, probeL = self.ReturnPumpProbeLevels(i)
+            pumpL, probeL = self.ReturnPumpProbeLevels()
             pumpLevel.append(pumpL)
             probeLevel.append(probeL)
-            nP, nW, sN = self.FSPNoiseLevel(i, 3000, 4000)
+            nP, nW, sN = self.FSPNoiseLevel(3000, 4000)
             noisePeriod.append(nP)
             noiseWelch.append(nW)
             shotNoise.append(sN)
             samplingRate.append(self.samplingRate)
-            pointsFSP.append(len(self.ReturnFSP(i)['signal']))
+            pointsFSP.append(len(self.currentFSP['signal']))
             ampGain.append(self.amplifierGains['probe'])
 
         
