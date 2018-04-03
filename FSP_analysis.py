@@ -44,15 +44,14 @@ class FSPAnalysis:
         self.amplifierGains = amplifierGains
 
         # Depending on the data format, get signal in volts
-        f = open("%s" % self.dataFile, "r")
         if bits == 16:
-            self.data = np.fromfile(f, dtype=np.int16)
-            pumpNorm = channelRanges['pump'] / 2**15 # To get voltages from 16 bit integer
-            probeNorm = channelRanges['probe'] / 2**15 
-            waveformNorm = channelRanges['waveform'] / 2**15 
-            triggerNorm = channelRanges['trigger'] / 2**15 
+            self.data = np.fromfile(self.dataFile, dtype=np.int16)
+            pumpNorm = np.float16(channelRanges['pump'] / 2**15) # To get voltages from 16 bit int
+            probeNorm = np.float16(channelRanges['probe'] / 2**15)
+            waveformNorm = np.float16(channelRanges['waveform'] / 2**15)
+            triggerNorm = np.float16(channelRanges['trigger'] / 2**15)
         elif bits == 32:
-            self.data = np.fromfile(f, dtype=np.int32)
+            self.data = np.fromfile(self.dataFile, dtype=np.int32)
             pumpNorm = channelRanges['pump'] / 2**31 # To get voltages from 16 bit integer
             probeNorm = channelRanges['probe'] / 2**31 
             waveformNorm = channelRanges['waveform'] / 2**31 
@@ -60,11 +59,14 @@ class FSPAnalysis:
         else:
             print("Needs to be either 16 or 32 bit!")
 
-        self.pumpCh = self.data[channelLayout['pump']-1::4] * pumpNorm            
-        self.probeCh = self.data[channelLayout['probe']-1::4] * probeNorm
-        self.waveformCh = self.data[channelLayout['waveform']-1::4] * waveformNorm
-        self.triggerCh = self.data[channelLayout['trigger']-1::4] * triggerNorm
-        
+
+        self.pumpCh = np.float16(self.data[channelLayout['pump']-1::4] * pumpNorm)
+        self.probeCh = np.float16(self.data[channelLayout['probe']-1::4] * probeNorm)
+        self.waveformCh = np.float16(self.data[channelLayout['waveform']-1::4] * waveformNorm)
+        self.triggerCh = np.float16(self.data[channelLayout['trigger']-1::4] * triggerNorm)
+        self.data = []
+
+               
     def TriggerFSP(self, N):
         """ Get the Nth FSP from raw data by using the trigger channel. """
 
