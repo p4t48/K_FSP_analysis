@@ -66,9 +66,7 @@ class FSPAnalysis:
         self.triggerCh = np.float16(self.data[channelLayout['trigger']-1::4] * triggerNorm)
         self.data = []
 
-        allTriggers = self.TriggerFSP()
-        print(allTriggers.size)
-
+        self.allTriggers = self.TriggerFSP()
                
     def TriggerFSP(self):
         """ Get the boundaries of all FSPs from raw data by using the trigger channel. """
@@ -89,7 +87,7 @@ class FSPAnalysis:
         locationFSP = consecutive(rangeFSP)
 
         if initialState == 0:
-            # Skip the first uncomplete FSP
+            # Skip the first incomplete FSP
             locationFSP = locationFSP[1:] 
         else:
             pass
@@ -102,12 +100,10 @@ class FSPAnalysis:
         # Return the boundary indices of all FSP signals
         return np.array(triggerPoints)
 
-
-
     def ReturnFSP(self, N):
         """ Returns data points of the Nth FSP with timing info. """
 
-        boundaries = self.TriggerFSP(N)
+        boundaries = self.allTriggers[N]
 
         # Get signal and cut out the first few weird points in the most obscure way possible
         signal = self.probeCh[boundaries[0]:boundaries[1]]
@@ -118,7 +114,7 @@ class FSPAnalysis:
     def ReturnPump(self, N):
         """ Returns data points of the pump beam during Nth FSP with timing info. """
 
-        boundaries = self.TriggerFSP(N)
+        boundaries = self.allTriggers[N]
 
         # Get signal and cut out the first few weird points in the most obscure way possible
         signal = self.pumpCh[boundaries[0]:boundaries[1]]
