@@ -66,11 +66,19 @@ class FSPAnalysis:
         self.triggerCh = np.float16(self.data[channelLayout['trigger']-1::4] * triggerNorm)
         self.data = []
 
+        # Data used for the fitting of FSP signals
         self.allTriggers = self.TriggerFSP()
         self.currentTrigger = []
         self.currentFSP = []
 
+        
+    def NumberOfFSPs(self):
+        """ Writes to screen how many FSPs are in the present file. Returns this value. """
 
+        nFSPs = np.size(self.allTriggers,0)
+        print("This file contains: %i FSPs" % nFSPs)
+
+        return nFSPs
         
     def TriggerFSP(self):
         """ Get the boundaries of all FSPs from raw data by using the trigger channel. """
