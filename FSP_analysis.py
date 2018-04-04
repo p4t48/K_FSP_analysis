@@ -45,26 +45,37 @@ class FSPAnalysis:
 
         # Depending on the data format, get signal in volts
         if bits == 16:
+            
             self.data = np.fromfile(self.dataFile, dtype=np.int16)
             pumpNorm = np.float16(channelRanges['pump'] / 2**15) # To get voltages from 16 bit int
             probeNorm = np.float16(channelRanges['probe'] / 2**15)
             waveformNorm = np.float16(channelRanges['waveform'] / 2**15)
             triggerNorm = np.float16(channelRanges['trigger'] / 2**15)
+
+            # Cast to half precision float to save space in memory
+            self.pumpCh = np.float16(self.data[channelLayout['pump']-1::4] * pumpNorm)
+            self.probeCh = np.float16(self.data[channelLayout['probe']-1::4] * probeNorm)
+            self.waveformCh = np.float16(self.data[channelLayout['waveform']-1::4] * waveformNorm)
+            self.triggerCh = np.float16(self.data[channelLayout['trigger']-1::4] * triggerNorm)
+            self.data = [] # Free up memory since data won't be accessed again
+
         elif bits == 32:
+            
             self.data = np.fromfile(self.dataFile, dtype=np.int32)
             pumpNorm = channelRanges['pump'] / 2**31 # To get voltages from 32 bit int
             probeNorm = channelRanges['probe'] / 2**31 
             waveformNorm = channelRanges['waveform'] / 2**31 
-            triggerNorm = channelRanges['trigger'] / 2**31             
+            triggerNorm = channelRanges['trigger'] / 2**31
+
+            # Cast to single precision float to save space in memory
+            self.pumpCh = np.float32(self.data[channelLayout['pump']-1::4] * pumpNorm)
+            self.probeCh = np.float32(self.data[channelLayout['probe']-1::4] * probeNorm)
+            self.waveformCh = np.float32(self.data[channelLayout['waveform']-1::4] * waveformNorm)
+            self.triggerCh = np.float32(self.data[channelLayout['trigger']-1::4] * triggerNorm)
+            self.data = [] # Free up memory since data won't be accessed again
+            
         else:
             print("Needs to be either 16 or 32 bit!")
-
-
-        self.pumpCh = np.float16(self.data[channelLayout['pump']-1::4] * pumpNorm)
-        self.probeCh = np.float16(self.data[channelLayout['probe']-1::4] * probeNorm)
-        self.waveformCh = np.float16(self.data[channelLayout['waveform']-1::4] * waveformNorm)
-        self.triggerCh = np.float16(self.data[channelLayout['trigger']-1::4] * triggerNorm)
-        self.data = []
 
         # Data used for the fitting of FSP signals
         self.allTriggers = self.TriggerFSP()
