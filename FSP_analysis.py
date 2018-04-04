@@ -1,28 +1,11 @@
 """
-This fitting library contains the following methods:
+This fitting library for data streamed with the d-tacq DAQ.
 
+The DAQ can stream data with the following format:
 
-- TriggerFSP(N): Get the Nth FSP from raw data by using the trigger channel.
+- 16 bit words with 16 bit vertical resolution on the sampling ADC.
 
-- ReturnFSP(N): Returns data points of the Nth FSP with timing info.
-
-- ReturnPump(N): Returns data points of the pump beam during Nth FSP with timing info.
-
-- ReturnPumpProbeLevels(N): Returns the pump and probe levels of RF-FSP mode as averages during probing time.
-
-- FSPFitExponential(N, report=0): Fits a constant plus exponential to the Nth FSP. As default doesn't print report. 
-
--  FSPCoarseFrequency(N): Very coarse estimate of the frequency of the FSP for initial parameters of next fit. 
-
-- FSPFitDecayingSine(N, report=0): Fit decaying sine with subtracted DC and exponential. 
-
-- FSPNoiseLevelPlot(N, noiseFreqLow, noiseFreqHigh, gainFemto): This function will calculate the power spectral density (PSD) using the periodogram method. It will calculate the real noise level and the shot noise level of the FSP. Then it plots the Fourier spectra along with the different noise levels on the graph.
-
-- FSPNoiseLevel(N, noiseFreqLow, noiseFreqHigh, gainFemto): This function will calculate the power spectral density (PSD) using the periodogram method. It will calculate the real noise level and the shot noise level of the FSP and return those values.
-
-- FSPFullFit(N, report=0): Full fit of the FSP signal including the DC offset and its decay.
-
-- AnalyseNFSPs(N): Run the decaying sine wave routine for an FSP on N FSPs and save results in csv file.
+- 32 bit words with 18 bit vertical resolution on the sampling ADC.
 
 """
 
@@ -84,7 +67,9 @@ class FSPAnalysis:
 
         
     def NumberOfFSPs(self):
-        """ Writes to screen how many FSPs are in the present file. Returns this value. """
+        """ 
+        Writes to screen how many FSPs are in the present file. Returns this value. 
+        """
 
         nFSPs = np.size(self.allTriggers,0)
         print("This file contains: %i FSPs" % nFSPs)
@@ -92,10 +77,14 @@ class FSPAnalysis:
         return nFSPs
         
     def TriggerFSP(self):
-        """ Get the boundaries of all FSPs from raw data by using the trigger channel. """
+        """ 
+        Get the boundaries of all FSPs from raw data by using the trigger channel. 
+        """
 
         def consecutive(data, stepsize=1):
-            """ Group consecutive numbers in array as a sub array. """
+            """ 
+            Group consecutive numbers in array as a sub array. 
+            """
             return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
         
         triggerLevel = 1
@@ -124,7 +113,9 @@ class FSPAnalysis:
         return np.array(triggerPoints[:-1])
 
     def ReturnFSP(self, N):
-        """ Returns data points of the Nth FSP with timing info. """
+        """ 
+        Returns data points of the Nth FSP with timing info. 
+        """
 
         boundaries = self.allTriggers[N]
         self.currentTrigger = boundaries
@@ -136,7 +127,9 @@ class FSPAnalysis:
         self.currentFSP = {'time': time, 'signal': signal}
 
     def ReturnPump(self):
-        """ Returns data points of the pump beam during Nth FSP with timing info. """
+        """ 
+        Returns data points of the pump beam during Nth FSP with timing info. 
+        """
 
         boundaries = self.currentTrigger
 
@@ -148,7 +141,9 @@ class FSPAnalysis:
 
     
     def ReturnPumpProbeLevels(self):
-        """ Returns the pump and probe levels of RF-FSP mode as averages during probing time. """
+        """ 
+        Returns the pump and probe levels of RF-FSP mode as averages during probing time. 
+        """
 
         probeLevel = np.mean(self.currentFSP['signal']) / self.amplifierGains['probe']
         pumpLevel = np.mean(self.ReturnPump()['signal']) / self.amplifierGains['pump']
@@ -156,10 +151,14 @@ class FSPAnalysis:
         return pumpLevel, probeLevel
         
     def FSPFitExponential(self, report=0):
-        """ Fits a constant plus exponential to the Nth FSP. As default doesn't print report. """
+        """ 
+        Fits a constant plus exponential to the Nth FSP. As default doesn't print report. 
+        """
 
         def ExponentialModel(params, t, data):
-            """ Fitting model a + d * exp(-e * t). """
+            """ 
+            Fitting model a + d * exp(-e * t). 
+            """
 
             a = params['a'].value
             d = params['d'].value
@@ -196,7 +195,9 @@ class FSPAnalysis:
         return expResult
 
     def FSPCoarseFrequency(self):
-        """ Very coarse estimate of the frequency of the FSP for initial parameters of next fit. """
+        """ 
+        Very coarse estimate of the frequency of the FSP for initial parameters of next fit. 
+        """
 
         # Remove the DC offset and the exponential decay for easier manipulation
         expResult = self.FSPFitExponential()
@@ -222,10 +223,14 @@ class FSPAnalysis:
 
 
     def FSPFitDecayingSine(self, report=0):
-        """ Fit decaying sine with subtracted DC and exponential. """
+        """ 
+        Fit decaying sine with subtracted DC and exponential. 
+        """
 
         def DecayingSine(params, t, data):
-            """ Define model of a decaying sine wave with in phase and quadrature components. """
+            """ 
+            Define model of a decaying sine wave with in phase and quadrature components. 
+            """
 
             bc = params['bc'].value
             bs = params['bs'].value
@@ -279,9 +284,11 @@ class FSPAnalysis:
 
 
     def FSPNoiseLevelPlot(self, noiseFreqLow, noiseFreqHigh):
-        """ This function will calculate the power spectral density (PSD) using the periodogram
+        """ 
+        This function will calculate the power spectral density (PSD) using the periodogram
         method. It will calculate the real noise level and the shot noise level of the FSP. Then
-        it plots the Fourier spectra along with the different noise levels on the graph. """
+        it plots the Fourier spectra along with the different noise levels on the graph. 
+        """
 
         electronCharge = 1.602 * 10**(-19) # In Coulomb
 
@@ -329,9 +336,11 @@ class FSPAnalysis:
 
         
     def FSPNoiseLevel(self, noiseFreqLow, noiseFreqHigh):
-        """ This function will calculate the power spectral density (PSD) using the periodogram
+        """ 
+        This function will calculate the power spectral density (PSD) using the periodogram
         method. It will calculate the real noise level and the shot noise level of the FSP and
-        return those values. """
+        return those values. 
+        """
 
         electronCharge = 1.602 * 10**(-19) # In Coulomb
 
@@ -358,7 +367,9 @@ class FSPAnalysis:
 
 
     def FSPFullFit(self, report=0):
-        """ Full fit of the FSP signal including the DC offset and its decay. """
+        """ 
+        Full fit of the FSP signal including the DC offset and its decay. 
+        """
 
         previousResults = self.FSPFitDecayingSine()
         sineInitial = previousResults['sine']
@@ -415,7 +426,9 @@ class FSPAnalysis:
 
     
     def AnalyseNFSPs(self, N):
-        """ Run the decaying sine wave routine for an FSP on N FSPs and save results in csv file. """
+        """ 
+        Run the decaying sine wave routine for an FSP on N FSPs and save results in csv file. 
+        """
 
         bcos, bsine, frequency, gamma = [], [], [], []
         pumpLevel, probeLevel, noisePeriod, noiseWelch, shotNoise = [], [], [], [], []
@@ -457,7 +470,9 @@ class FSPAnalysis:
             df.to_csv(filePath, index=False, sep='\t')
 
     def SNSensitivity(self):
-        """ Returns the shot noise sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). """
+        """ 
+        Returns the shot noise sensitivity obtained with a single FSP signal with the formula frome W. Heils group (He3 paper). 
+        """
 
         gainFemto = self.amplifierGains['probe']
         Dt = 1/self.samplingRate
