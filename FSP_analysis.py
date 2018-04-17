@@ -1,5 +1,5 @@
 """
-This fitting library for data streamed with the d-tacq DAQ.
+This fitting library for data streamed with the d-tacq DAQ (http://www.d-tacq.com/).
 
 The DAQ can stream data with the following format:
 
